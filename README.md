@@ -146,6 +146,7 @@ As Dapper is based on ADO.NET it's transaction management is quite straightforwa
 _NOTE: .NET `TransactionScope` feature that allows creating a distributed transaction that can span across multiple actors is also natively supported as it is implemented at the ADO.NET level. This functionality however is Windows-only (uses MSDTS service), hence wasn't explored as part of this research_
 
 ### How do we do functions like Compare-and-swap?
+Dapper doesn't provide any optimistic concurrency support by default. If such feature is needed for specific tables then it would require introducing `rowversion` field to the table and a field to the type accordingly. Sql queries would need to be carefully crafted to respect this field.
 
 ### How easy is it to test?
 It hugely depends on the type of testing that needs to be performed. In case if Vanilla dapper is used and IDbConnection factory is injected as a main entry point to perform DB operations then there the following solutions are possible:
@@ -156,6 +157,8 @@ It hugely depends on the type of testing that needs to be performed. In case if 
   Slightly less integration like option, but may have it's own problems considering that SQLite dialect may have it's own specifics that may affect tests results
 
   However, it is unlikely that in a reasonably production focused solution Dapper will be used directly as a IDbConnection, it is more likely that some sort of Unit Of Work/Repository patter will be implemented and in such case testing is a matter of mocking/stubbing of relevant abstractions
+
+
 
 ### Migrations
 Dapper doesn't provide any functionality to support database migrations. If using Dapper a completely ad-hoc process would need to be introduced to support DB versioning and applying of changes.
@@ -172,3 +175,6 @@ Some interesting benchmark results can be found here:
 4. [https://koukia.ca/entity-framework-core-2-0-vs-dapper-net-performance-benchmark-querying-sql-azure-tables-7696e8e3ed28]
 
 In overall these benchmarks show that Dapper is only a bit faster than EF Core implementation in comparable scenarios, EF Core with tracking is slower for obvious reasons.
+
+### Dapper extensions
+//TODO:

@@ -2,9 +2,13 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
 
+    [Table("Users")]
     public class User
     {
+        [Key]
         public Guid UserId { get; set; } = Guid.NewGuid();
 
         public string Username { get; set; }
