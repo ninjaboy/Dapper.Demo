@@ -2,6 +2,8 @@
 {
     using System;
     using System.Data.SqlClient;
+    using System.IO;
+    using System.Reflection;
     using Xunit;
 
     [CollectionDefinition("Database collection")]
@@ -32,9 +34,13 @@
             DropTable("dbo", "Users");
             DropTable("dbo", "Roles");
             DropTable("dbo", "UserRoles");
-            DbConnection.Execute("CREATE TABLE Users(UserId uniqueidentifier NOT NULL,Username nvarchar(256) NOT NULL, Email nvarchar(256) NOT NULL, PasswordHash nvarchar(512) NOT NULL, DeactivatedOn date NULL, GDPRSignedOn date NULL, CONSTRAINT PK_Users PRIMARY KEY CLUSTERED (UserId ASC)) ");
-            DbConnection.Execute("CREATE TABLE UserRoles(UserId uniqueidentifier NOT NULL,RoleId uniqueidentifier NOT NULL)");
-            DbConnection.Execute("CREATE TABLE Roles(RoleId uniqueidentifier NOT NULL, [Type] nvarchar(256) NOT NULL, CONSTRAINT PK_Roles PRIMARY KEY CLUSTERED (RoleId ASC)) ");
+            DropTable("dbo", "__Migrations");
+
+            string migrationsScript = File.ReadAllText(Path.Combine(
+                Path.GetDirectoryName((new Uri(Assembly.GetExecutingAssembly().CodeBase)).AbsolutePath),
+                "MigrationScript.sql"));
+
+            DbConnection.Execute(migrationsScript);
         }
 
         public void Dispose()

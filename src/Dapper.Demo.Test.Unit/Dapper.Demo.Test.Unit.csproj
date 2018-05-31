@@ -16,6 +16,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\Dapper.Demo.Repositories\MigrationScript.sql" Link="MigrationScript.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Dapper.Demo.Repositories\Dapper.Demo.Repositories.csproj" />
   </ItemGroup>
 

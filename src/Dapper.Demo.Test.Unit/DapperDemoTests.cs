@@ -179,7 +179,6 @@ namespace Dapper.Demo.Test.Unit
             userWithRoles.Roles.Should().NotBeNullOrEmpty();
             userWithRoles.Roles[0].RoleId.Should().Be(arrangements.Roles[0].RoleId);
             userWithRoles.Roles[0].Type.Should().Be(arrangements.Roles[0].Type);
-
         }
 
 
