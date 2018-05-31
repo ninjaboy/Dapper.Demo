@@ -8,7 +8,7 @@ IF object_id('[dbo].[__Migrations]') IS NOT NULL
         (SELECT TOP (1)
         [Project1].[MigrationId] AS [MigrationId]
         FROM ( SELECT [Extent1].[MigrationId] AS [MigrationId]
-            FROM [dbo].[__MigrationHistory] AS [Extent1]
+            FROM [dbo].[__Migrations] AS [Extent1]
             WHERE [Extent1].[ContextKey] = @ContextName
         )  AS [Project1]
         ORDER BY [Project1].[MigrationId] DESC)
@@ -44,3 +44,10 @@ BEGIN
     INSERT INTO __Migrations (MigrationId, ContextKey) VALUES ('201805311134_InitialSetup', @ContextName)
 END
 
+IF @CurrentMigration < '201805311206_ConcurrencyExample'
+BEGIN
+    ALTER TABLE dbo.Users ADD
+        ConcurrencyToken rowversion NOT NULL
+
+    INSERT INTO __Migrations (MigrationId, ContextKey) VALUES ('201805311206_ConcurrencyExample', @ContextName)
+END

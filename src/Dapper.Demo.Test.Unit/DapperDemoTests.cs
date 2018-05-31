@@ -9,6 +9,7 @@ namespace Dapper.Demo.Test.Unit
     using System.Collections.Generic;
     using System.Data;
     using System.Linq;
+    using System.Threading.Tasks;
 
     [Collection("Database collection")]
     public class DapperDemoTests
@@ -90,15 +91,33 @@ namespace Dapper.Demo.Test.Unit
         private ArrangementsBuilder NewArrangementsBuilder() => new ArrangementsBuilder(dbSetupFixture.DbConnection);
 
         [Fact]
-        public void DapperInsertSelect()
+        public async Task DapperInsert()
         {
             //Arrange
             var arrangements = NewArrangementsBuilder().WithNewRole().Build();
             //Act
 
-            arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection);
-            var role = arrangements.SUT.GetRoleById(arrangements.Roles[0].RoleId, arrangements.DbConnection);
+            bool success = await arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection);
             //Assert
+            success.Should().BeTrue();
+        }
+
+
+        [Fact]
+        public async Task DapperGet()
+        {
+            //Arrange
+            var arrangements = NewArrangementsBuilder().WithNewRole().Build();
+            bool success = await arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection);
+            if (!success)
+            {
+                throw new Exception("Error creating role");
+            }
+            //Act
+            var role = await arrangements.SUT.GetRoleById(arrangements.Roles[0].RoleId, arrangements.DbConnection);
+
+            //Assert
+
             role.RoleId.Should().Be(arrangements.Roles[0].RoleId);
             role.Type.Should().Be(arrangements.Roles[0].Type);
         }
@@ -106,29 +125,30 @@ namespace Dapper.Demo.Test.Unit
 
 
         [Fact]
-        public void DapperUpdate()
+        public async Task DapperUpdate()
         {
             //Arrange
             var arrangements = NewArrangementsBuilder().WithNewUser().Build();
-            arrangements.SUT.InsertUser(arrangements.Users[0], arrangements.DbConnection);
+            await arrangements.SUT.InsertUser(arrangements.Users[0], arrangements.DbConnection);
 
             //Act
             arrangements.Users[0].Username = "Smith";
-            arrangements.SUT.UpdateUser(arrangements.Users[0], arrangements.DbConnection);
-            var user = arrangements.SUT.GetUserById(arrangements.Users[0].UserId, arrangements.DbConnection);
+            var version = arrangements.Users[0].ConcurrencyToken;
+            bool success = await arrangements.SUT.UpdateUser(arrangements.Users[0], arrangements.DbConnection);
+
             //Assert
-            user.UserId.Should().Be(arrangements.Users[0].UserId);
-            user.Username.Should().Be(arrangements.Users[0].Username);
+            success.Should().BeTrue();
+            version.Should().NotBeSameAs(version);
         }
 
         [Fact]
-        public void DapperInsertList()
+        public async Task DapperInsertList()
         {
             //Arrange
             var arrangements = NewArrangementsBuilder().WithNewRole().WithNewRole().WithNewUser().WithPermuteUserRoles().Build();
             //Act
-            arrangements.SUT.InsertUserRoles(arrangements.UserRoles, arrangements.DbConnection);
-            var userRoles = arrangements.SUT.GetAllUserRoles(arrangements.DbConnection);
+            await arrangements.SUT.InsertUserRoles(arrangements.UserRoles, arrangements.DbConnection);
+            var userRoles = await arrangements.SUT.GetAllUserRoles(arrangements.DbConnection);
 
             //Assert
             userRoles.Count().Should().Be(2);
@@ -138,7 +158,7 @@ namespace Dapper.Demo.Test.Unit
 
 
         [Fact]
-        public void DapperTransaction()
+        public async Task DapperTransaction()
         {
             //Arrange
             var arrangements = NewArrangementsBuilder().WithNewUser().WithNewRole().WithPermuteUserRoles().Build();
@@ -146,32 +166,32 @@ namespace Dapper.Demo.Test.Unit
             //Act
             using (var transaction = arrangements.DbConnection.BeginTransaction())
             {
-                arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection, transaction);
-                arrangements.SUT.InsertUserRoles(new List<UserRole>() { arrangements.UserRoles[0] }, arrangements.DbConnection, transaction);
-                arrangements.SUT.InsertUser(arrangements.Users[0], arrangements.DbConnection, transaction);
+                await arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection, transaction);
+                await arrangements.SUT.InsertUserRoles(new List<UserRole>() { arrangements.UserRoles[0] }, arrangements.DbConnection, transaction);
+                await arrangements.SUT.InsertUser(arrangements.Users[0], arrangements.DbConnection, transaction);
                 transaction.Rollback(); //Rollback to show that operations in scope will not happen
             }
 
             //Assert
-            Assert.Throws<InvalidOperationException>(() =>
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 arrangements.SUT.GetRoleById(arrangements.Roles[0].RoleId, arrangements.DbConnection));
         }
 
         [Fact]
-        public void DapperSelectNested()
+        public async Task DapperSelectNested()
         {
             //Arrange
             var arrangements = NewArrangementsBuilder().WithNewUser().WithNewRole().WithPermuteUserRoles().Build();
             using (var transaction = arrangements.DbConnection.BeginTransaction())
             {
-                arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection, transaction);
-                arrangements.SUT.InsertUserRoles(new List<UserRole>() { arrangements.UserRoles[0] }, arrangements.DbConnection, transaction);
-                arrangements.SUT.InsertUser(arrangements.Users[0], arrangements.DbConnection, transaction);
+                await arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection, transaction);
+                await arrangements.SUT.InsertUserRoles(new List<UserRole>() { arrangements.UserRoles[0] }, arrangements.DbConnection, transaction);
+                await arrangements.SUT.InsertUser(arrangements.Users[0], arrangements.DbConnection, transaction);
                 transaction.Commit();
             }
 
             //Act
-            var userWithRoles = arrangements.SUT.GetUserWithRolesById(arrangements.Users[0].UserId, arrangements.DbConnection);
+            var userWithRoles = await arrangements.SUT.GetUserWithRolesById(arrangements.Users[0].UserId, arrangements.DbConnection);
 
             //Assert
             userWithRoles.UserId.Should().Be(arrangements.Users[0].UserId);

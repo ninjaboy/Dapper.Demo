@@ -5,16 +5,32 @@
     using System.Collections.Generic;
     using System.Data;
     using System.Linq;
+    using System.Threading.Tasks;
 
     public class DapperDemoDbAccess
     {
         private const string SqlRoleGetAll = "SELECT * FROM Roles";
         private const string SqlRoleGetById = "SELECT RoleId,[Type] FROM Roles WHERE RoleId = @RoleId";
         private const string SqlRoleInsert = "INSERT INTO Roles(RoleId,[Type]) VALUES(@RoleId, @Type)";
+
         private const string SqlUserGetById = "SELECT * FROM Users WHERE UserId = @UserId";
-        private const string SqlUserInsert = "INSERT INTO [dbo].[Users]([UserId],[Username],[Email],[PasswordHash],[DeactivatedOn],[GDPRSignedOn]) VALUES(@UserId, @Username, @Email, @PasswordHash, @DeactivatedOn, @GDPRSignedOn)";
-        private const string SqlUserUpdate = "UPDATE [dbo].[Users] SET [Username] = @Username, Email = @Email, PasswordHash = @PasswordHash, DeactivatedOn = @DeactivatedOn, GDPRSignedOn = @GDPRSignedOn " +
-                                              "WHERE UserId = @UserId";
+
+        private static readonly string SqlUserInsert =
+            WithConcurrencyUpdateDecorator("INSERT INTO [dbo].[Users]" +
+                                           "([UserId],[Username],[Email],[PasswordHash],[DeactivatedOn],[GDPRSignedOn]) " +
+                                           "VALUES(@UserId, @Username, @Email, @PasswordHash, @DeactivatedOn, @GDPRSignedOn)",
+                                           "Users", "UserId");
+
+        private static readonly string SqlUserUpdate = WithConcurrencyUpdateDecorator("UPDATE [dbo].[Users] " +
+                                             "SET [Username] = @Username" +
+                                             ", Email = @Email" +
+                                             ", PasswordHash = @PasswordHash" +
+                                             ", DeactivatedOn = @DeactivatedOn" +
+                                             ", GDPRSignedOn = @GDPRSignedOn" +
+                                             ", ConcurrencyToken =@ConcurrencyToken " +
+                                              "WHERE UserId = @UserId AND ConcurrencyToken = @ConcurrencyToken"
+                                             , "Users", "UserId");
+
 
         private const string SqlUserRoleGetAll = "SELECT * FROM UserRoles";
         private const string SqlUserRoleInsert = "INSERT INTO [dbo].[UserRoles]([UserId],[RoleId]) VALUES(@UserId, @RoleId)";
@@ -23,16 +39,22 @@
                                                       "INNER JOIN Users u ON ur.UserId = u.UserId " +
                                                       "INNER JOIN Roles r ON r.RoleId = ur.RoleId WHERE u.UserId = @UserId";
 
-
-        public User GetUserById(Guid userId, IDbConnection dbConnection, IDbTransaction transaction = null)
+        //This is so dangerous in so many ways. Use with care
+        private static string WithConcurrencyUpdateDecorator(string input, string tableName, string keyName)
         {
-            var user = dbConnection.QuerySingle<User>(SqlUserGetById, new { UserId = userId }, transaction);
-            return user;
+            return $"{input}; SELECT @ConcurrencyToken = ConcurrencyToken FROM {tableName} where {keyName} = @{keyName}";
+        }
+        private DynamicParameters WithConcurrencyTokenUpdate(User user) => new DynamicParameters(user).Output(user, u => u.ConcurrencyToken);
+
+
+        public Task<User> GetUserById(Guid userId, IDbConnection dbConnection, IDbTransaction transaction = null)
+        {
+            return dbConnection.QuerySingleAsync<User>(SqlUserGetById, new { UserId = userId }, transaction);
         }
 
-        public User GetUserWithRolesById(Guid userId, IDbConnection dbConnection, IDbTransaction transaction = null)
+        public async Task<User> GetUserWithRolesById(Guid userId, IDbConnection dbConnection, IDbTransaction transaction = null)
         {
-            var user = dbConnection.Query<User, Role, User>(SqlUserGetByIdWithRoles,
+            var user = (await dbConnection.QueryAsync<User, Role, User>(SqlUserGetByIdWithRoles,
                 (u, r) =>
                 {
                     u.Roles.Add(r);
@@ -40,45 +62,45 @@
                 },
                 new { UserId = userId },
                 transaction,
-                splitOn: "UserId, RoleId").Single();
+                splitOn: "UserId, RoleId")).Single();
             return user;
         }
 
-        public void InsertUser(User user, IDbConnection dbConnection, IDbTransaction transaction = null)
+        public async Task<bool> InsertUser(User user, IDbConnection dbConnection, IDbTransaction transaction = null)
         {
-            dbConnection.Execute(SqlUserInsert, user, transaction);
+            var script = SqlUserInsert;
+            return await dbConnection.ExecuteAsync(script, WithConcurrencyTokenUpdate(user), transaction) > 0;
         }
 
-        public void UpdateUser(User user, IDbConnection dbConnection, IDbTransaction transaction = null)
+        public async Task<bool> UpdateUser(User user, IDbConnection dbConnection, IDbTransaction transaction = null)
         {
-            dbConnection.Execute(SqlUserUpdate, user, transaction);
+            return await dbConnection.ExecuteAsync(SqlUserUpdate, WithConcurrencyTokenUpdate(user), transaction) > 0;
         }
 
 
-        public Role GetRoleById(Guid roleId, IDbConnection dbConnection, IDbTransaction transaction = null)
+        public Task<Role> GetRoleById(Guid roleId, IDbConnection dbConnection, IDbTransaction transaction = null)
         {
-            var role = dbConnection.QuerySingle<Role>(SqlRoleGetById, new { RoleId = roleId }, transaction);
-            return role;
+            return dbConnection.QuerySingleAsync<Role>(SqlRoleGetById, new { RoleId = roleId }, transaction);
         }
 
-        public void InsertRole(Role role, IDbConnection dbConnection, IDbTransaction transaction = null)
+        public async Task<bool> InsertRole(Role role, IDbConnection dbConnection, IDbTransaction transaction = null)
         {
-            dbConnection.Execute(SqlRoleInsert, role, transaction);
+            return await dbConnection.ExecuteAsync(SqlRoleInsert, role, transaction) > 0;
         }
 
-        public IEnumerable<Role> GetAllRoles(IDbConnection dbConnection, IDbTransaction transaction = null)
+        public Task<IEnumerable<Role>> GetAllRoles(IDbConnection dbConnection, IDbTransaction transaction = null)
         {
-            return dbConnection.Query<Role>(SqlRoleGetAll, transaction: transaction);
+            return dbConnection.QueryAsync<Role>(SqlRoleGetAll, transaction: transaction);
         }
 
-        public IEnumerable<UserRole> GetAllUserRoles(IDbConnection dbConnection, IDbTransaction transaction = null)
+        public Task<IEnumerable<UserRole>> GetAllUserRoles(IDbConnection dbConnection, IDbTransaction transaction = null)
         {
-            return dbConnection.Query<UserRole>(SqlUserRoleGetAll, transaction: transaction);
+            return dbConnection.QueryAsync<UserRole>(SqlUserRoleGetAll, transaction: transaction);
         }
 
-        public void InsertUserRoles(List<UserRole> userRoles, IDbConnection dbConnection, IDbTransaction transaction = null)
+        public async Task<bool> InsertUserRoles(List<UserRole> userRoles, IDbConnection dbConnection, IDbTransaction transaction = null)
         {
-            dbConnection.Execute(SqlUserRoleInsert, userRoles, transaction);
+            return await dbConnection.ExecuteAsync(SqlUserRoleInsert, userRoles, transaction) > 0;
         }
 
     }
