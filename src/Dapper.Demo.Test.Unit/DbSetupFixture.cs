@@ -2,6 +2,12 @@
 {
     using System;
     using System.Data.SqlClient;
+    using Xunit;
+
+    [CollectionDefinition("Database collection")]
+    public class DatabaseCollection : ICollectionFixture<DbSetupFixture>
+    {
+    }
 
     public class DbSetupFixture : IDisposable
     {

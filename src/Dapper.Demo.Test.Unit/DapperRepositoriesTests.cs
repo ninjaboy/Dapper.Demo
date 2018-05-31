@@ -7,7 +7,8 @@
     using System.Linq;
     using Xunit;
 
-    public class DapperRepositoriesTests : IClassFixture<DbSetupFixture>
+    [Collection("Database collection")]
+    public class DapperRepositoriesTests
     {
         private readonly DbSetupFixture dbSetupFixture;
 

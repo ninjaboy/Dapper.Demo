@@ -3,13 +3,15 @@ using Xunit;
 namespace Dapper.Demo.Test.Unit
 {
     using FluentAssertions;
+    using Repositories;
     using Repositories.Models;
     using System;
     using System.Collections.Generic;
     using System.Data;
     using System.Linq;
 
-    public class DapperDemoTests : IClassFixture<DbSetupFixture>
+    [Collection("Database collection")]
+    public class DapperDemoTests
     {
         private readonly DbSetupFixture dbSetupFixture;
 
@@ -20,19 +22,8 @@ namespace Dapper.Demo.Test.Unit
             public List<Role> Roles { get; set; } = new List<Role>();
             public List<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
-            public const string SqlRoleGetAll = "SELECT * FROM Roles";
-            public const string SqlRoleGetById = "SELECT RoleId,[Type] FROM Roles WHERE RoleId = @RoleId";
-            public const string SqlRoleInsert = "INSERT INTO Roles(RoleId,[Type]) VALUES(@RoleId, @Type)";
-            public const string SqlUserGetById = "SELECT * FROM Users WHERE UserId = @UserId";
-            public const string SqlUserInsert = "INSERT INTO [dbo].[Users]([UserId],[Username],[Email],[PasswordHash],[DeactivatedOn],[GDPRSignedOn]) VALUES(@UserId, @Username, @Email, @PasswordHash, @DeactivatedOn, @GDPRSignedOn)";
-            public const string SqlUserUsernameUpdate = "UPDATE [dbo].[Users] SET [Username] = @Username WHERE UserId = @UserId";
+            public DapperDemoDbAccess SUT = new DapperDemoDbAccess();
 
-            public const string SqlUserRoleGetAll = "SELECT * FROM UserRoles";
-            public const string SqlUserRoleInsert = "INSERT INTO [dbo].[UserRoles]([UserId],[RoleId]) VALUES(@UserId, @RoleId)";
-
-            public const string SqlUserGetByIdWithRoles = "select u.*, r.* FROM UserRoles ur " +
-                    "INNER JOIN Users u ON ur.UserId = u.UserId " +
-                    "INNER JOIN Roles r ON r.RoleId = ur.RoleId WHERE u.UserId = @UserId";
         }
 
         public class ArrangementsBuilder
@@ -93,6 +84,7 @@ namespace Dapper.Demo.Test.Unit
         public DapperDemoTests(DbSetupFixture dbSetupFixture)
         {
             this.dbSetupFixture = dbSetupFixture;
+            dbSetupFixture.DbConnection.Execute("DELETE FROM Users; DELETE FROM Roles; DELETE FROM UserRoles");
         }
 
         private ArrangementsBuilder NewArrangementsBuilder() => new ArrangementsBuilder(dbSetupFixture.DbConnection);
@@ -103,8 +95,9 @@ namespace Dapper.Demo.Test.Unit
             //Arrange
             var arrangements = NewArrangementsBuilder().WithNewRole().Build();
             //Act
-            arrangements.DbConnection.Execute(Arrangements.SqlRoleInsert, arrangements.Roles[0]);
-            var role = arrangements.DbConnection.QuerySingle<Role>(Arrangements.SqlRoleGetById, new { arrangements.Roles[0].RoleId });
+
+            arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection);
+            var role = arrangements.SUT.GetRoleById(arrangements.Roles[0].RoleId, arrangements.DbConnection);
             //Assert
             role.RoleId.Should().Be(arrangements.Roles[0].RoleId);
             role.Type.Should().Be(arrangements.Roles[0].Type);
@@ -117,12 +110,12 @@ namespace Dapper.Demo.Test.Unit
         {
             //Arrange
             var arrangements = NewArrangementsBuilder().WithNewUser().Build();
-            arrangements.DbConnection.Execute(Arrangements.SqlUserInsert, arrangements.Users[0]);
+            arrangements.SUT.InsertUser(arrangements.Users[0], arrangements.DbConnection);
 
             //Act
             arrangements.Users[0].Username = "Smith";
-            arrangements.DbConnection.Execute(Arrangements.SqlUserUsernameUpdate, arrangements.Users[0]);
-            var user = arrangements.DbConnection.QuerySingle<User>(Arrangements.SqlUserGetById, new { arrangements.Users[0].UserId });
+            arrangements.SUT.UpdateUser(arrangements.Users[0], arrangements.DbConnection);
+            var user = arrangements.SUT.GetUserById(arrangements.Users[0].UserId, arrangements.DbConnection);
             //Assert
             user.UserId.Should().Be(arrangements.Users[0].UserId);
             user.Username.Should().Be(arrangements.Users[0].Username);
@@ -132,16 +125,15 @@ namespace Dapper.Demo.Test.Unit
         public void DapperInsertList()
         {
             //Arrange
-            var arrangements = NewArrangementsBuilder().WithNewRole().WithNewRole().Build();
+            var arrangements = NewArrangementsBuilder().WithNewRole().WithNewRole().WithNewUser().WithPermuteUserRoles().Build();
             //Act
-            arrangements.DbConnection.Execute(Arrangements.SqlRoleInsert, arrangements.Roles);
-            var role1 = arrangements.DbConnection.Query<Role>(Arrangements.SqlRoleGetById, new { arrangements.Roles[0].RoleId });
-            var role2 = arrangements.DbConnection.Query<Role>(Arrangements.SqlRoleGetById, new { arrangements.Roles[1].RoleId });
+            arrangements.SUT.InsertUserRoles(arrangements.UserRoles, arrangements.DbConnection);
+            var userRoles = arrangements.SUT.GetAllUserRoles(arrangements.DbConnection);
+
             //Assert
-            role1.Should().NotBeNullOrEmpty();
-            role1.Single().Type.Should().Be(arrangements.Roles[0].Type);
-            role2.Should().NotBeNullOrEmpty();
-            role2.Single().Type.Should().Be(arrangements.Roles[1].Type);
+            userRoles.Count().Should().Be(2);
+            userRoles.First().UserId.Should().Be(arrangements.Users[0].UserId);
+            userRoles.First().RoleId.Should().Be(arrangements.Roles[0].RoleId);
         }
 
 
@@ -154,17 +146,15 @@ namespace Dapper.Demo.Test.Unit
             //Act
             using (var transaction = arrangements.DbConnection.BeginTransaction())
             {
-                arrangements.DbConnection.Execute(Arrangements.SqlRoleInsert, arrangements.Roles[0], transaction);
-                arrangements.DbConnection.Execute(Arrangements.SqlUserRoleInsert, arrangements.UserRoles[0], transaction);
+                arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection, transaction);
+                arrangements.SUT.InsertUserRoles(new List<UserRole>() { arrangements.UserRoles[0] }, arrangements.DbConnection, transaction);
+                arrangements.SUT.InsertUser(arrangements.Users[0], arrangements.DbConnection, transaction);
                 transaction.Rollback(); //Rollback to show that operations in scope will not happen
             }
 
-            var role = arrangements.DbConnection.Query<Role>(Arrangements.SqlRoleGetById, new { arrangements.Roles[0].RoleId });
-            var user = arrangements.DbConnection.Query<User>(Arrangements.SqlUserGetById, new { arrangements.Users[0].UserId });
-
             //Assert
-            role.Should().BeEmpty();
-            user.Should().BeEmpty();
+            Assert.Throws<InvalidOperationException>(() =>
+                arrangements.SUT.GetRoleById(arrangements.Roles[0].RoleId, arrangements.DbConnection));
         }
 
         [Fact]
@@ -172,25 +162,16 @@ namespace Dapper.Demo.Test.Unit
         {
             //Arrange
             var arrangements = NewArrangementsBuilder().WithNewUser().WithNewRole().WithPermuteUserRoles().Build();
-
-            //Act
             using (var transaction = arrangements.DbConnection.BeginTransaction())
             {
-                arrangements.DbConnection.Execute(Arrangements.SqlRoleInsert, arrangements.Roles[0], transaction);
-                arrangements.DbConnection.Execute(Arrangements.SqlUserInsert, arrangements.Users[0], transaction);
-                arrangements.DbConnection.Execute(Arrangements.SqlUserRoleInsert, arrangements.UserRoles[0], transaction);
+                arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection, transaction);
+                arrangements.SUT.InsertUserRoles(new List<UserRole>() { arrangements.UserRoles[0] }, arrangements.DbConnection, transaction);
+                arrangements.SUT.InsertUser(arrangements.Users[0], arrangements.DbConnection, transaction);
                 transaction.Commit();
             }
 
-            var userWithRoles = arrangements.DbConnection.Query<User, Role, User>(Arrangements.SqlUserGetByIdWithRoles,
-                (u, r) =>
-                {
-                    u.Roles.Add(r);
-                    return u;
-                },
-                new { arrangements.Users[0].UserId },
-                splitOn: "UserId, RoleId"
-                ).Single();
+            //Act
+            var userWithRoles = arrangements.SUT.GetUserWithRolesById(arrangements.Users[0].UserId, arrangements.DbConnection);
 
             //Assert
             userWithRoles.UserId.Should().Be(arrangements.Users[0].UserId);
