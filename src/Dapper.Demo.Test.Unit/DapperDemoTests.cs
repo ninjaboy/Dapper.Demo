@@ -138,7 +138,7 @@ namespace Dapper.Demo.Test.Unit
 
             //Assert
             success.Should().BeTrue();
-            version.Should().NotBeSameAs(version);
+            version.Should().NotBe(version);
         }
 
         [Fact]

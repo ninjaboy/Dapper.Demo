@@ -24,10 +24,9 @@
         private static readonly string SqlUserUpdate = WithConcurrencyUpdateDecorator("UPDATE [dbo].[Users] " +
                                              "SET [Username] = @Username" +
                                              ", Email = @Email" +
-                                             ", PasswordHash = @PasswordHash" +
-                                             ", DeactivatedOn = @DeactivatedOn" +
-                                             ", GDPRSignedOn = @GDPRSignedOn" +
-                                             ", ConcurrencyToken =@ConcurrencyToken " +
+                                             ", PasswordHash = @PasswordHash " +
+                                             ", DeactivatedOn = @DeactivatedOn " +
+                                             ", GDPRSignedOn = @GDPRSignedOn " +
                                               "WHERE UserId = @UserId AND ConcurrencyToken = @ConcurrencyToken"
                                              , "Users", "UserId");
 
@@ -42,7 +41,7 @@
         //This is so dangerous in so many ways. Use with care
         private static string WithConcurrencyUpdateDecorator(string input, string tableName, string keyName)
         {
-            return $"{input}; SELECT @ConcurrencyToken = ConcurrencyToken FROM {tableName} where {keyName} = @{keyName}";
+            return $"{input}{Environment.NewLine} SELECT @ConcurrencyToken = ConcurrencyToken FROM {tableName} where {keyName} = @{keyName}";
         }
         private DynamicParameters WithConcurrencyTokenUpdate(User user) => new DynamicParameters(user).Output(user, u => u.ConcurrencyToken);
 
