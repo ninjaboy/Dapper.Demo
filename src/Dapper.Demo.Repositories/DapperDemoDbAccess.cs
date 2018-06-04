@@ -36,7 +36,8 @@
 
         private const string SqlUserGetByIdWithRoles = "select u.*, r.* FROM UserRoles ur " +
                                                       "INNER JOIN Users u ON ur.UserId = u.UserId " +
-                                                      "INNER JOIN Roles r ON r.RoleId = ur.RoleId WHERE u.UserId = @UserId";
+                                                      "INNER JOIN Roles r ON r.RoleId = ur.RoleId " +
+                                                      "WHERE u.UserId = @UserId";
 
         //This is so dangerous in so many ways. Use with care
         private static string WithConcurrencyUpdateDecorator(string input, string tableName, string keyName)

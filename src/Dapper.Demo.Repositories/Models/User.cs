@@ -20,6 +20,6 @@
 
         public List<Role> Roles { get; set; } = new List<Role>();
 
-        public long ConcurrencyToken { get; set; }
+        public byte[] ConcurrencyToken { get; set; } = new byte[8];
     }
 }

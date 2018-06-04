@@ -107,19 +107,17 @@ namespace Dapper.Demo.Test.Unit
         public async Task DapperGet()
         {
             //Arrange
-            var arrangements = NewArrangementsBuilder().WithNewRole().Build();
-            bool success = await arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection);
+            var arrangements = NewArrangementsBuilder().WithNewUser().Build();
+            var success = await arrangements.SUT.InsertUser(arrangements.Users[0], arrangements.DbConnection);
             if (!success)
             {
-                throw new Exception("Error creating role");
+                throw new Exception("Error creating User");
             }
             //Act
-            var role = await arrangements.SUT.GetRoleById(arrangements.Roles[0].RoleId, arrangements.DbConnection);
+            var user = await arrangements.SUT.GetUserById(arrangements.Users[0].UserId, arrangements.DbConnection);
 
             //Assert
-
-            role.RoleId.Should().Be(arrangements.Roles[0].RoleId);
-            role.Type.Should().Be(arrangements.Roles[0].Type);
+            user.UserId.Should().Be(arrangements.Users[0].UserId);
         }
 
 
@@ -134,11 +132,11 @@ namespace Dapper.Demo.Test.Unit
             //Act
             arrangements.Users[0].Username = "Smith";
             var version = arrangements.Users[0].ConcurrencyToken;
-            bool success = await arrangements.SUT.UpdateUser(arrangements.Users[0], arrangements.DbConnection);
+            var success = await arrangements.SUT.UpdateUser(arrangements.Users[0], arrangements.DbConnection);
 
             //Assert
             success.Should().BeTrue();
-            version.Should().NotBe(version);
+            arrangements.Users[0].ConcurrencyToken.Should().NotEqual(version);
         }
 
         [Fact]
