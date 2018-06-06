@@ -143,15 +143,15 @@ namespace Dapper.Demo.Test.Unit
         public async Task DapperInsertList()
         {
             //Arrange
-            var arrangements = NewArrangementsBuilder().WithNewRole().WithNewRole().WithNewUser().WithPermuteUserRoles().Build();
+            var arrangements = NewArrangementsBuilder().WithNewRole().WithNewRole().Build();
             //Act
-            await arrangements.SUT.InsertUserRoles(arrangements.UserRoles, arrangements.DbConnection);
-            var userRoles = await arrangements.SUT.GetAllUserRoles(arrangements.DbConnection);
+            await arrangements.SUT.InsertRoles(arrangements.Roles, arrangements.DbConnection);
+            var roles = await arrangements.SUT.GetAllRoles(arrangements.DbConnection);
 
             //Assert
-            userRoles.Count().Should().Be(2);
-            userRoles.First().UserId.Should().Be(arrangements.Users[0].UserId);
-            userRoles.First().RoleId.Should().Be(arrangements.Roles[0].RoleId);
+            roles.Count(role => arrangements.Roles.Exists(r => r.RoleId == role.RoleId)).Should().Be(2);
+            roles.First(role => role.RoleId == arrangements.Roles[0].RoleId).Type.Should().Be(arrangements.Roles[0].Type);
+
         }
 
 
@@ -165,8 +165,8 @@ namespace Dapper.Demo.Test.Unit
             using (var transaction = arrangements.DbConnection.BeginTransaction())
             {
                 await arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection, transaction);
-                await arrangements.SUT.InsertUserRoles(new List<UserRole>() { arrangements.UserRoles[0] }, arrangements.DbConnection, transaction);
                 await arrangements.SUT.InsertUser(arrangements.Users[0], arrangements.DbConnection, transaction);
+                await arrangements.SUT.InsertUserRoles(new List<UserRole>() { arrangements.UserRoles[0] }, arrangements.DbConnection, transaction);
                 transaction.Rollback(); //Rollback to show that operations in scope will not happen
             }
 
@@ -183,8 +183,8 @@ namespace Dapper.Demo.Test.Unit
             using (var transaction = arrangements.DbConnection.BeginTransaction())
             {
                 await arrangements.SUT.InsertRole(arrangements.Roles[0], arrangements.DbConnection, transaction);
-                await arrangements.SUT.InsertUserRoles(new List<UserRole>() { arrangements.UserRoles[0] }, arrangements.DbConnection, transaction);
                 await arrangements.SUT.InsertUser(arrangements.Users[0], arrangements.DbConnection, transaction);
+                await arrangements.SUT.InsertUserRoles(new List<UserRole>() { arrangements.UserRoles[0] }, arrangements.DbConnection, transaction);
                 transaction.Commit();
             }
 

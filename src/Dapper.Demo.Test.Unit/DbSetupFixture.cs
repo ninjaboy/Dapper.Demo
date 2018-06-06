@@ -1,9 +1,8 @@
 ﻿namespace Dapper.Demo.Test.Unit
 {
+    using Repositories.DbHelpers;
     using System;
     using System.Data.SqlClient;
-    using System.IO;
-    using System.Reflection;
     using Xunit;
 
     [CollectionDefinition("Database collection")]
@@ -22,31 +21,21 @@
             DbConnection = new SqlConnection(ConnString);
             DbConnection.Open();
 
-            InitDb();
+            DbScaffolder.InitDb(DbConnection, TestsDbName);
         }
 
-        private void InitDb()
-        {
-            DbConnection.Execute($"IF NOT EXISTS (SELECT name FROM master.dbo.sysdatabases WHERE name = '{TestsDbName}') CREATE DATABASE [{TestsDbName}];");
-            DbConnection.Execute($"USE [{TestsDbName}]");
-            void DropTable(string schema, string name)
-                => DbConnection.Execute($@"IF OBJECT_ID('{schema}.{name}', 'U') IS NOT NULL DROP TABLE [{schema}].[{name}]; ");
-            DropTable("dbo", "Users");
-            DropTable("dbo", "Roles");
-            DropTable("dbo", "UserRoles");
-            DropTable("dbo", "__Migrations");
-
-            string migrationsScript = File.ReadAllText(Path.Combine(
-                Path.GetDirectoryName((new Uri(Assembly.GetExecutingAssembly().CodeBase)).AbsolutePath),
-                "MigrationScript.sql"));
-
-            DbConnection.Execute(migrationsScript);
-        }
 
         public void Dispose()
         {
-            DbConnection.Execute($"USE master; DROP DATABASE {TestsDbName}");
-            DbConnection.Dispose();
+            try
+            {
+                DbScaffolder.DropDb(DbConnection, TestsDbName);
+                DbConnection.Dispose();
+            }
+            catch
+            {
+                // ignored
+            }
         }
     }
 }

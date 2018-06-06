@@ -41,6 +41,17 @@ BEGIN
         [Type] nvarchar(256) NOT NULL, 
         CONSTRAINT PK_Roles PRIMARY KEY CLUSTERED (RoleId ASC)) 
 
+    ALTER TABLE [dbo].[UserRoles]  WITH CHECK ADD  CONSTRAINT [FK_UserRoles_Roles] FOREIGN KEY([RoleId])
+        REFERENCES [dbo].[Roles] ([RoleId])
+
+    ALTER TABLE [dbo].[UserRoles] CHECK CONSTRAINT [FK_UserRoles_Roles]
+
+    ALTER TABLE [dbo].[UserRoles]  WITH CHECK ADD  CONSTRAINT [FK_UserRoles_Users] FOREIGN KEY([UserId])
+        REFERENCES [dbo].[Users] ([UserId])
+        ON DELETE CASCADE
+
+    ALTER TABLE [dbo].[UserRoles] CHECK CONSTRAINT [FK_UserRoles_Users]
+
     INSERT INTO __Migrations (MigrationId, ContextKey) VALUES ('201805311134_InitialSetup', @ContextName)
 END
 

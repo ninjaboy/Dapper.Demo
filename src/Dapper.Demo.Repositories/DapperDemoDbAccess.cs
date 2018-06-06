@@ -7,13 +7,14 @@
     using System.Linq;
     using System.Threading.Tasks;
 
-    public class DapperDemoDbAccess
+    public partial class DapperDemoDbAccess
     {
         private const string SqlRoleGetAll = "SELECT * FROM Roles";
         private const string SqlRoleGetById = "SELECT RoleId,[Type] FROM Roles WHERE RoleId = @RoleId";
         private const string SqlRoleInsert = "INSERT INTO Roles(RoleId,[Type]) VALUES(@RoleId, @Type)";
 
         private const string SqlUserGetById = "SELECT * FROM Users WHERE UserId = @UserId";
+        private const string SqlUsersDeleteAll = "DELETE FROM Users";
 
         private static readonly string SqlUserInsert =
             WithConcurrencyUpdateDecorator("INSERT INTO [dbo].[Users]" +
@@ -29,6 +30,8 @@
                                              ", GDPRSignedOn = @GDPRSignedOn " +
                                               "WHERE UserId = @UserId AND ConcurrencyToken = @ConcurrencyToken"
                                              , "Users", "UserId");
+
+        private const string SqlUserUpdateUsername = "UPDATE dbo.Users SET Username = @Username WHERE UserId = @UserId AND Username = @OldUsername";
 
 
         private const string SqlUserRoleGetAll = "SELECT * FROM UserRoles";
@@ -101,6 +104,21 @@
         public async Task<bool> InsertUserRoles(List<UserRole> userRoles, IDbConnection dbConnection, IDbTransaction transaction = null)
         {
             return await dbConnection.ExecuteAsync(SqlUserRoleInsert, userRoles, transaction) > 0;
+        }
+
+        public async Task<bool> InsertRoles(List<Role> roles, IDbConnection dbConnection, IDbTransaction transaction = null)
+        {
+            return await dbConnection.ExecuteAsync(SqlRoleInsert, roles, transaction) > 0;
+        }
+
+        public async Task<bool> UpdateUsernameConcurrent(User user, string username, IDbConnection dbConnection, IDbTransaction transaction = null)
+        {
+            return await dbConnection.ExecuteAsync(SqlUserUpdateUsername, new { UserId = user.UserId, Username = username, OldUsername = user.Username }, transaction) > 0;
+        }
+
+        public Task<int> DeleteAllUsers(IDbConnection dbConnection, IDbTransaction transaction = null)
+        {
+            return dbConnection.ExecuteAsync(SqlUsersDeleteAll, transaction: transaction);
         }
 
     }

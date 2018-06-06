@@ -22,4 +22,6 @@
 
         public byte[] ConcurrencyToken { get; set; } = new byte[8];
     }
+
+
 }
