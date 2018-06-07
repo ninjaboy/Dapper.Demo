@@ -26,7 +26,7 @@
             return conn;
         }
 
-        [Params(10, 1000)]
+        [Params(10, 1000, 10000)]
         //[Params(1)]
         public int NumerOfRowsToSeed;
 
