@@ -198,7 +198,6 @@ Build the solution in release mode and then run: `dotnet src\Dapper.Demo.Benchma
 
 
                             Method | NumerOfRowsToSeed |        Mean |      Error |     StdDev |      Median |
----------------------------------- |------------------ |------------:|-----------:|-----------:|------------:|
           GetOneUserWithNewContext |                10 |    241.2 us |   4.675 us |   4.801 us |    240.3 us |
   GetOneUserWithoutContextOverhead |                10 |    220.9 us |   4.405 us |   5.727 us |    221.0 us |
                           UpdateOk |                10 |    662.5 us |  13.210 us |  27.573 us |    655.6 us |
@@ -223,7 +222,6 @@ Build the solution in release mode and then run: `dotnet src\Dapper.Demo.Benchma
 #### Benchmarking results for EFCore 2.0 (for comparison)
 
                             Method | NumerOfRowsToSeed |        Mean |      Error |     StdDev |      Median |
----------------------------------- |------------------ |------------:|-----------:|-----------:|------------:|
           GetOneUserWithNewContext |                10 |    466.7 us |   9.314 us |  12.433 us |    465.1 us |
   GetOneUserWithoutContextOverhead |                10 |    358.1 us |   7.089 us |   6.631 us |    359.8 us |
                           UpdateOk |                10 |    539.2 us |  11.378 us |  24.000 us |    535.5 us |
