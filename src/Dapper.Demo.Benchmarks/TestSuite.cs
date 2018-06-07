@@ -26,24 +26,26 @@
             return conn;
         }
 
-        //[Params(10, 1000)]
-        [Params(1)]
+        [Params(10, 1000)]
+        //[Params(1)]
         public int NumerOfRowsToSeed;
 
         private IDbConnection globalConn;
+        private Random rand;
 
         [GlobalSetup]
         public void Setup()
         {
             db = new DapperDemoDbAccess();
             globalConn = CreateConnection();
-
+            rand = new Random((int)DateTime.Now.Ticks);
             SeedDb();
         }
 
         private void SeedDb()
         {
             idCache = DbHelper.SeedDb(globalConn, db, NumerOfRowsToSeed).Result;
+            //names = DbHelper.RandomNames(NumerOfRowsToSeed);
         }
 
         [GlobalCleanup]
@@ -104,24 +106,22 @@
                     var u1 = await db.GetUserById(id, conn1);
                     var u2 = await db.GetUserById(id, conn2);
 
-                    var success = await db.UpdateUsernameConcurrent(u2, "ExpectedName", conn2);
+                    var success = await db.UpdateUsernameConcurrent(u2, rand.Next(1000000).ToString(), conn2);
                     if (!success)
                     {
                         throw new Exception("Operation failed");
                     }
 
-                    var success2 = await db.UpdateUsernameConcurrent(u1, "ThisSHOULDNotWork", conn1);
+                    var success2 = await db.UpdateUsernameConcurrent(u1, rand.Next(1000000).ToString(), conn1);
                     if (!success2)
                     {
                         throw new InvalidOperationException("Concurrency check exception");
                     }
-
-                    throw new Exception("Concurrency check didn't work");
                 }
             }
             catch (InvalidOperationException)
             {
-                return;
+                throw new Exception("Concurrency check didn't work");
             }
         }
 
