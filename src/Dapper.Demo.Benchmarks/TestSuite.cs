@@ -26,8 +26,8 @@
             return conn;
         }
 
-        //[Params(10, 1000)]
-        [Params(1)]
+        [Params(10, 1000)]
+        //[Params(1)]
         public int NumerOfRowsToSeed;
 
         private IDbConnection globalConn;
@@ -56,41 +56,41 @@
 
         }
 
-        //[Benchmark]
-        //public async Task GetOneUserWithNewContext()
-        //{
-        //    using (var conn = CreateConnection())
-        //    {
-        //        var id = GetNextIdSequentially();
-        //        var user = await db.GetUserById(id, conn);
-        //        if (user == null) throw new InvalidOperationException("Get failed");
-        //    }
-        //}
+        [Benchmark]
+        public async Task GetOneUserWithNewContext()
+        {
+            using (var conn = CreateConnection())
+            {
+                var id = GetNextIdSequentially();
+                var user = await db.GetUserById(id, conn);
+                if (user == null) throw new InvalidOperationException("Get failed");
+            }
+        }
 
-        //[Benchmark]
-        //public async Task GetOneUserWithoutContextOverhead()
-        //{
-        //    var id = GetNextIdSequentially();
-        //    var user = await db.GetUserById(id, globalConn);
-        //    if (user == null) throw new InvalidOperationException("Get failed");
-        //}
+        [Benchmark]
+        public async Task GetOneUserWithoutContextOverhead()
+        {
+            var id = GetNextIdSequentially();
+            var user = await db.GetUserById(id, globalConn);
+            if (user == null) throw new InvalidOperationException("Get failed");
+        }
 
-        //[Benchmark]
-        //public async Task UpdateOk()
-        //{
-        //    using (var conn = CreateConnection())
-        //    {
-        //        var id = GetNextIdSequentially();
-        //        var u = await db.GetUserById(id, conn);
-        //        u.Username = "Johnny";
+        [Benchmark]
+        public async Task UpdateOk()
+        {
+            using (var conn = CreateConnection())
+            {
+                var id = GetNextIdSequentially();
+                var u = await db.GetUserById(id, conn);
+                u.Username = "Johnny";
 
-        //        var success = await db.UpdateUser(u, conn);
-        //        if (!success)
-        //        {
-        //            throw new InvalidOperationException("Benchmark failed");
-        //        }
-        //    }
-        //}
+                var success = await db.UpdateUser(u, conn);
+                if (!success)
+                {
+                    throw new InvalidOperationException("Benchmark failed");
+                }
+            }
+        }
 
         [Benchmark]
         public async Task UpdateFail()
@@ -125,22 +125,22 @@
             throw new Exception("Concurrency check didn't work");
         }
 
-        //[Benchmark]
-        //public async Task GetAllNamesWithNewContext()
-        //{
-        //    using (var conn = CreateConnection())
-        //    {
-        //        var result = await db.GetAllNameProjections(conn);
-        //        if (result == null) throw new InvalidOperationException("Get all failed");
-        //    }
-        //}
+        [Benchmark]
+        public async Task GetAllNamesWithNewContext()
+        {
+            using (var conn = CreateConnection())
+            {
+                var result = await db.GetAllNameProjections(conn);
+                if (result == null) throw new InvalidOperationException("Get all failed");
+            }
+        }
 
-        //[Benchmark]
-        //public async Task GetAllNamesWithoutContextOverhead()
-        //{
-        //    var result = await db.GetAllNameProjections(globalConn);
-        //    if (result == null) throw new InvalidOperationException("Get all failed");
-        //}
+        [Benchmark]
+        public async Task GetAllNamesWithoutContextOverhead()
+        {
+            var result = await db.GetAllNameProjections(globalConn);
+            if (result == null) throw new InvalidOperationException("Get all failed");
+        }
 
     }
 }
