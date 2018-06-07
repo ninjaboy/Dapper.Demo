@@ -121,8 +121,8 @@
             }
             catch (InvalidOperationException)
             {
-                throw new Exception("Concurrency check didn't work");
             }
+            throw new Exception("Concurrency check didn't work");
         }
 
         [Benchmark]
