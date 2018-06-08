@@ -201,37 +201,32 @@ Build the solution in release mode and then run: `dotnet src\Dapper.Demo.Benchma
 
 #### Benchmarking results for Dapper
 
-
+```
                             Method | NumerOfRowsToSeed |        Mean |      Error |     StdDev |      Median |
           GetOneUserWithNewContext |                10 |    241.2 us |   4.675 us |   4.801 us |    240.3 us |
   GetOneUserWithoutContextOverhead |                10 |    220.9 us |   4.405 us |   5.727 us |    221.0 us |
-
                           UpdateOk |                10 |    662.5 us |  13.210 us |  27.573 us |    655.6 us |
                         UpdateFail |                10 |  1,048.6 us |  20.485 us |  19.162 us |  1,047.0 us |
          GetAllNamesWithNewContext |                10 |    253.7 us |   5.070 us |  13.620 us |    249.6 us |
-GetAllNamesWithoutContextOverhead |                10 |    225.7 us |   4.388 us |   5.858 us |    225.2 us |
- 
+ GetAllNamesWithoutContextOverhead |                10 |    225.7 us |   4.388 us |   5.858 us |    225.2 us |
           GetOneUserWithNewContext |              1000 |    259.6 us |   5.160 us |  11.434 us |    259.0 us |
   GetOneUserWithoutContextOverhead |              1000 |    221.0 us |   3.353 us |   3.137 us |    220.7 us |
-
                           UpdateOk |              1000 |    635.2 us |  12.517 us |  20.913 us |    627.4 us |
                         UpdateFail |              1000 |  1,145.5 us |  40.312 us | 116.953 us |  1,186.4 us |
          GetAllNamesWithNewContext |              1000 |  1,278.7 us |  26.192 us |  36.718 us |  1,277.1 us |
  GetAllNamesWithoutContextOverhead |              1000 |  1,109.9 us |  28.704 us |  84.636 us |  1,116.9 us |
-
           GetOneUserWithNewContext |             10000 |    258.4 us |   5.148 us |  12.234 us |    258.3 us |
   GetOneUserWithoutContextOverhead |             10000 |    234.4 us |   4.590 us |   8.622 us |    234.4 us |
                           UpdateOk |             10000 |    699.4 us |  13.840 us |  33.159 us |    694.2 us |
-
                         UpdateFail |             10000 |  1,076.2 us |  21.489 us |  56.232 us |  1,078.1 us |
          GetAllNamesWithNewContext |             10000 | 12,898.7 us | 242.285 us | 483.869 us | 12,833.2 us |
-         
  GetAllNamesWithoutContextOverhead |             10000 | 12,613.1 us | 249.749 us | 475.173 us | 12,476.6 us |
-
+```
 
 
 #### Benchmarking results for EFCore 2.0 (for comparison)
 
+```
                             Method | NumerOfRowsToSeed |        Mean |      Error |     StdDev |      Median |
           GetOneUserWithNewContext |                10 |    466.7 us |   9.314 us |  12.433 us |    465.1 us |
   GetOneUserWithoutContextOverhead |                10 |    358.1 us |   7.089 us |   6.631 us |    359.8 us |
@@ -251,7 +246,7 @@ GetAllNamesWithoutContextOverhead |                10 |    225.7 us |   4.388 us
                         UpdateFail |             10000 |  2,764.8 us |  56.332 us |  57.849 us |  2,757.0 us |
          GetAllNamesWithNewContext |             10000 | 39,172.4 us | 765.074 us | 967.574 us | 39,169.2 us |
  GetAllNamesWithoutContextOverhead |             10000 | 37,099.5 us | 672.288 us | 595.966 us | 36,985.8 us |
-
+```
 
 
 #### Benchmarks analysis
